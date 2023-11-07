@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello Triangle!</title>
+    <script type="text/javascript" src="hello_triangle.js"></script>
+    <script type="text/javascript" src="common/MV.js"></script>
+</head>
+<body>
+    <canvas id="webgpu-canvas" width="512" height="512">
+        Please use a browser that supports HTML5 canvas.
+    </canvas>
+    <script id="wgsl" type="x-shader">
+        @vertex
+        fn main_vs(@builtin(vertex_index) VertexIndex : u32) -> @builtin(position) vec4f
+        {
+            var pos = array<vec2f, 3>(vec2f(-0.5, -0.5), vec2f(0.5, -0.5), vec2f(0.0, 0.5));
+            let theta = 1.0;
+            let temp = pos[VertexIndex];
+            pos[VertexIndex].x = -sin(theta) * temp.y + cos(theta) * temp.x;
+            pos[VertexIndex].y = sin(theta) * temp.x + cos(theta) * temp.y;
+            return vec4f(pos[VertexIndex], 0.0, 1.0);
+        }
+        @fragment
+        fn main_fs() -> @location(0) vec4f
+        {
+            return vec4f(1.0, 1.0, 1.0, 1.0);
+        }
+    </script>
+</body>
+</html>

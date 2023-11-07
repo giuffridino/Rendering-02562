@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chaos Triangle!</title>
+    <script type="text/javascript" src="chaos_triangle.js"></script>
+    <script type="text/javascript" src="common/MV.js"></script>
+</head>
+<body>
+    <canvas id="webgpu-canvas" width="512" height="512">
+        Please use a browser that supports HTML5 canvas.
+    </canvas>
+    <script id="wgsl" type="x-shader">
+        struct vsout{
+            @builtin(position) position: vec4f,
+            @location(0) loc: vec3f,
+        };
+
+        @vertex
+        fn main_vs(@builtin(vertex_index) VertexIndex : u32) -> vsout
+        {
+            var pos = array<vec2f, 3>(vec2f(-0.5, -0.5), vec2f(0.5, -0.5), vec2f(0.0, 0.5));
+            var ret: vsout;
+            ret.position = vec4f(pos[VertexIndex], 0.0, 1.0);
+            ret.loc = vec3f(pos[VertexIndex], 0.0);
+            return ret;
+        }
+
+        fn random(st: vec2f) -> f32
+        {
+            return fract(sin(dot(st.xy, vec2f(12.9898, 78.233)))*43758.5453123);
+        }
+
+        @fragment
+        fn main_fs(@location(0) loc: vec3f) -> @location(0) vec4f
+        {
+            var r = random(loc.xy);
+            var g = random(loc.xy*2.0);
+            var b = random(loc.xy*4.0);
+            return vec4f(r, g, b, 1.0);
+        }
+    </script>
+</body>
+</html>

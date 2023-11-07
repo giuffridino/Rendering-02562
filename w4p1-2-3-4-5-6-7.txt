@@ -1,0 +1,40 @@
+(1) We know that to calculate the number of photons we need to solve the equation
+P * e = N * E, where P is the power in Watts of the light bulb, e is its efficiency,
+N is the number of photons we wish to find and E is the energy of one photon.
+Already knowing the values for P and e, we can now calculate E by using the formula
+E = (c * h)/lambda which is shown in the slides. After calculating this value we solve
+for N and find N = 1.26 * 10^19.
+
+(2) Under ideal conditions we assume an efficiency of 100% of the light bulb. We can 
+start by calculating the Radiant Flux as phi = 2.4 * 0.7 * 1 = 1.68 J/s.
+We then calculate the area of the light bulb by using the formula 4 * pi * r^2
+and find that A = 0.001256 m^2. Once we have this we can calculate the Radiant Exitance
+as RE = phi / A = 1337 W/m^2. We can also easily calculate the radiant intensity as
+RI = phi / omega where omega is the solid angle of the light which in this case,
+since it is a sphere, is equal to omega = 4 * pi sr. Solving for RI = 0.134 W / sr.
+Finally, to calculate the emitted energy in 5 minutes we simply mulyiply phi
+for the number of seconds leading to EmittedEnergy = 504 J. 
+
+(3) Given that the eye is so small we can assume that the angle theta is the same across
+the entire eye, meaning that we can simply set cos(theta) = 1 simplyfying our equation.
+We can now calculate the Irradiance as Irr = RadiantIntensity * 1/r^2 where r is the distance
+of the eye from the light source which we know. Solving the equation leads to 
+Irr = 0.134 W / m^2
+
+(4) Similarly to part 3 we assume that either the table is very small, or only one point 
+directly orthogonal to the light source such that cos(theta) = 1. We can now calculate the
+Irradiance as Irr = (200*0.2)/ (4 * pi * r^2) = 0.796 W/m^2. We can then convert it to 
+photometry quite easily by multiplying by 685 and also 0.1 leading to an illuminance of
+Ill = 0.796 * 685 * 0.1 = 55 lm/sr.
+
+(5) In this case we can equate the two irradiance functions on each side of the plane
+which leads to the equation 40 / 0.35^2 = I_x / 0.65^2 (assuming once again we are performing
+the calculation only at one point orthogonal to the light sources). This leads to a value of
+I_x = 138 lm/sr. 
+
+(6) In this case we can easily calculate the Radiosity by simplyfying the integral
+and solve B = L * pi = 15700 W/m^2. 
+
+(7) In this case it's not as easy as the previous case because we need to change the
+integral itself which becomes B = 12000 * pi * integral(cos^2(theta) * sin(theta) * dtheta). 
+Once calculated this becomes equal to B = 12560 W/m^2. 

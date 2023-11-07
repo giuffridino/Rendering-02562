@@ -1,0 +1,60 @@
+<html>
+<head></head>
+<body>
+<script>
+(async ()=>{
+let canvas= document.createElement('canvas');
+document.body.appendChild( canvas );
+canvas.width = canvas.height = 200;;
+console.log( canvas.width, canvas.height);
+
+const gpu = navigator.gpu;
+const adapter = await gpu.requestAdapter();
+const device = await adapter.requestDevice();
+
+// context type 'gpupresent' is deprecated. Use 'webgpu' instead.
+// const ctx = canvas.getContext("gpupresent");
+const ctx = canvas.getContext("webgpu");
+const canvasFormat = navigator.gpu.getPreferredCanvasFormat();
+    ctx.configure({
+        device: device,
+        format: canvasFormat,
+    });
+// let configuration= {
+//     device: device,
+//     format: ctx.getPreferredFormat(adapter),
+//     size: { // size of the canvas element in pixels
+//         width: canvas.width,
+//         height: canvas.height,
+//     }
+// // };
+// ctx.configure( configuration );
+
+console.log( 'getCurrentTexture():', ctx.getCurrentTexture() );
+let render = function ()
+{
+    const commandEncoder= device.createCommandEncoder();
+    const textureView= ctx.getCurrentTexture().createView();
+    const renderPassDescriptor= {
+        colorAttachments: [
+            { view : textureView,
+                // loadValue : { r: 0, g: 1, b: 0, a: 1 }, // clear
+                // loadValue has been deprecated use loadOp and clearValue
+                loadOp : 'clear',
+                clearValue : { r: 0, g: 1, b: 0, a: 1 },
+                storeOp : 'store',
+            }
+        ]
+    };
+    const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+    // passEncoder.endPass();
+    // endPass() has been depreciated use end()
+    passEncoder.end();
+    device.queue.submit([commandEncoder.finish()]);
+    requestAnimationFrame(render);
+};
+requestAnimationFrame(render);
+})();
+</script>
+</body>
+</html

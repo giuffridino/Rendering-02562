@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ray-tracer!</title>
+    <script type="text/javascript" src="ray_tracer.js"></script>
+    <script type="text/javascript" src="common/MV.js"></script>
+</head>
+<body>
+    <canvas id="webgpu-canvas" width="512" height="512">
+        Please use a browser that supports HTML5 canvas.
+    </canvas>
+    <script id="wgsl" type="x-shader">
+        struct vsout{
+            @builtin(position) position: vec4f,
+            @location(0) uv: vec2f,
+        };
+
+        @vertex
+        fn main_vs(@builtin(vertex_index) VertexIndex : u32) -> vsout
+        {
+            var s = 0.9;
+            var pos = array<vec2f, 4>(  vec2f(-s, -s), 
+                                        vec2f(s, -s), 
+                                        vec2f(s, s),
+                                        vec2f(-s, s));
+            s = 1.0;
+            var uvs = array<vec2f, 4>(  vec2f(-s, -s), 
+                                        vec2f(s, -s), 
+                                        vec2f(s, s),
+                                        vec2f(-s, s));
+            var ret: vsout;
+            ret.position = vec4f(pos[VertexIndex], 0.0, 1.0);
+            ret.uv = uvs[VertexIndex]*0.5 + 0.5;
+            return ret;
+        }
+
+        struct hitdata{
+            rayLenght : f32,
+            normal : vec3f,
+        };
+
+        fn rayIntersectsSphere(ray : vec3f, dir : vec3f, center : vec3f, radius : f32) -> hitdata
+        {
+            var rc = ray - center;
+            var c = dot(rc, rc) - (radius * radius);
+            var b = dot(dir, rc);
+            var d = b * b - c;
+            var t = -b - sqrt(abs(d));
+
+            if(d < 0.0 || t < 0.0)
+            {
+                t = 0.0; //Didn't hit
+            }
+            var hit : hitdata;
+            var hitPos = ray + dir * t;
+            hit.Normal = normalize(hitPos - center);
+            hit.RayLength = t;
+            return hit;
+        }
+
+        fn background(rd : vec3f) -> vec3f
+        {
+            let sky = max(0.0, dot(rd, vec3f(0.0, 0.2, -0.7)));
+            return pow(sky, 1.0) * vec3f(0.5, 0.6, 0.7);
+
+        }
+
+        @fragment
+        fn main_fs(@location(0) loc: vec3f) -> @location(0) vec4f
+        {
+            var r = random(loc.xy);
+            var g = random(loc.xy*2.0);
+            var b = random(loc.xy*4.0);
+            return vec4f(r, g, b, 1.0);
+        }
+    </script>
+</body>
+</html>
