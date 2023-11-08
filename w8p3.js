@@ -173,9 +173,7 @@ async function main()
         {
             progressing = true;
             animate();
-            // requestAnimationFrame(animate);
         }
-        // requestAnimationFrame(render);
     });
 
     function animate()

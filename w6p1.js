@@ -87,10 +87,6 @@ async function main()
             matColors.push(g_drawingInfo.materials[i].color.g + g_drawingInfo.materials[i].emission.g);
             matColors.push(g_drawingInfo.materials[i].color.b + g_drawingInfo.materials[i].emission.b);
             matColors.push(g_drawingInfo.materials[i].color.a + g_drawingInfo.materials[i].emission.a);
-            // matEmission.push(g_drawingInfo.materials[i].emission.r);
-            // matEmission.push(g_drawingInfo.materials[i].emission.g);
-            // matEmission.push(g_drawingInfo.materials[i].emission.b);
-            // matEmission.push(g_drawingInfo.materials[i].emission.a);
         }
 
         buffers.color = device.createBuffer({
