@@ -1,0 +1,116 @@
+//fn intersect_torus(r: Ray, hit: ptr<function, HitInfo>, center: vec3f, big_radius: f32, small_radius: f32) -> bool
+        //{
+        //    var RoC = r.origin - center;
+        //    var alpha = dot(r.direction, r.direction);
+        //    var beta = dot(r.direction, RoC);
+        //    var gamma = dot(RoC, RoC);
+        //    var delta = gamma + pow(big_radius, 2.0) - pow(small_radius, 2.0);
+        //    var omega = gamma - pow(big_radius, 2.0) - pow(small_radius, 2.0);
+        //    var a = alpha * alpha;
+        //    var b = 4.0 * alpha * beta;
+        //    var c = 2.0 * alpha * delta - 4.0 * big_radius * (r.direction.x * r.direction.x + r.direction.y * r.direction.y) + 4.0 * beta * beta;
+        //    var d = 4.0 * alpha * omega + 8.0 * beta * big_radius;
+        //    var discr = pow(c, 2.0) - 4.0 * a * d;
+        //    if(discr < 0.0f)
+        //    {
+        //        return false;
+        //    }
+        //    var t1 = (-c - sqrt(discr)) / (2.0 * a);
+        //    if(t1 > r.t_min && t1 < r.t_max)
+        //    {
+        //        (*hit).has_hit = true;
+        //        (*hit).dist = t1;
+        //        (*hit).position = r.origin + t1 * r.direction;
+        //        var inner_alpha = big_radius / (sqrt(pow((*hit).position.x, 2) + pow((*hit).position.y, 2)));
+        //        (*hit).normal = normalize(vec3f((1-inner_alpha) * (*hit).position.x, (1-inner_alpha) * (*hit).position.y, (*hit).position.z));
+        //        //(*hit).normal = normalize((*hit).position - center);
+        //        return true;
+        //    }
+        //    var t2 = (-c + sqrt(discr)) / (2.0 * a);
+        //    if(t2 > r.t_min && t2 < r.t_max)
+        //    {
+        //        (*hit).has_hit = true;
+        //        (*hit).dist = t2;
+        //        (*hit).position = r.origin + t2 * r.direction;
+        //        var inner_alpha = big_radius / (sqrt(pow((*hit).position.x, 2) + pow((*hit).position.y, 2)));
+        //        (*hit).normal = normalize(vec3f((1-inner_alpha) * (*hit).position.x, (1-inner_alpha) * (*hit).position.y, (*hit).position.z));
+        //        //(*hit).normal = normalize((*hit).position - center);
+        //        return true;
+        //    }
+        //    return false;
+        //}
+
+
+var temp_a = 1.0 - (big_radius / sqrt(pow((*hit).position.x - center.x, 2) + pow((*hit).position.y - center.y, 2)));
+                    var nx = temp_a * ((*hit).position.x - center.x);
+                    var ny = temp_a * ((*hit).position.y - center.y);
+                    var nz = (*hit).position.z - center.z;
+                    var normal_length = sqrt(nx * nx + ny * ny + nz * nz);
+
+
+<select id = "textureMenu" size = "1">
+        <option value = "clamp-to-edge"> Clamp-to-edge </option>
+        <option value = "repeat" selected> Repeat </option>
+    </select>
+    <select id = "samplerMenu" size = "1">
+        <option value = "nearest"> Nearest </option>
+        <option value = "linear" selected> Linear </option>
+    </select>
+    <select id = "subdivsMenu" size = "1">
+        <option value = "2.0"> 2 subdivisions </option>
+        <option value = "4.0"> 4 subdivisions</option>
+        <option value = "8.0"> 8 subdivisions</option>
+        <option value = "16.0"> 16 subdivisions</option>
+    </select>
+
+
+fn solve_quartic(a: f32, b: f32, c: f32, d: f32, e: f32, roots: ptr<function, array<f32, 4>>)->i32
+        {
+            var inv_a = 1.0/a;
+            var t_b *= inv_a;
+            var t_c *= inv_a;
+            var t_d *= inv_a;
+            var t_e *= inv_a;
+            var C = t_b * 0.5;
+            var CC = C * C;
+            var b2 = t_c - 6.0 * CC;
+            var b1 = t_d - 2.0 * C * (t_c - 4.0 * CC);
+            var b0 = t_e - C * (t_d - C * (t_c * 3.0 * CC));
+            var cb = b2;
+            var cc = (b2 * b2) * 0.25 - b0;
+            var cd = -(b1 * b1) * 0.125;
+            var roots3 : array<f32, 3>;
+            var num = solve_cubic(1.0, cb, cc, cd, roots3);
+            var m = 0;
+            for (var i = 0; i < num; i = i + 1) {
+                if(roots3[i] > 0.0) { m = roots3[i]; break; }
+            }
+            var sigma = b1 > 0.0 ? 1.0 : -1.0;
+            var R = sigma * sqrt(max(0.0, m*m + b2 * m + (b2 * b2) / 4.0 - b0));
+        }
+
+        fn solve4(a: f32, b: f32, c: f32, d: f32, e: f32, roots: ptr<function, array<f32, 4>>)->i32{
+            if(isZero(a))
+            {
+                return solve_quartic(a, b, c, d, e, roots);
+            }
+            if(isZero(b))
+            {
+                var roots3 : array<f32, 3>;
+                int num = solve_cubic(b, c, d, e, roots3);
+                roots[0] = roots3[0]; roots[1] = roots3[1]; roots[2] = roots3[2];
+                return num;
+            }
+            if(isZero(c))
+            {
+                var roots2 : array<f32, 2>;
+                int num = solve_cubic(b, c, d, e, roots2);
+                roots[0] = roots2[0]; roots[1] = roots2[1];
+                return num;
+            }
+            if(isZero(d))
+            {
+                roots[0] = -e/d;
+                return 1;
+            }
+        }
