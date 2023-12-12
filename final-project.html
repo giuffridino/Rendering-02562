@@ -550,13 +550,13 @@
             var po = 1.0;
             var Ra2 = big_radius*big_radius;
             var ra2 = small_radius*small_radius;
-            var m = dot(r.origin - center, r.origin - center);
-            var n = dot(r.origin - center,r.direction);
-            var k = (m + Ra2 - ra2)/2.0;
-            var k3 = n;
-            var k2 = n*n - Ra2*dot(r.direction.xy,r.direction.xy) + k;
-            var k1 = n*k - Ra2*dot(r.direction.xy,r.origin.xy - center.xy);
-            var k0 = k*k - Ra2*dot(r.origin.xy - center.xy,r.origin.xy - center.xy);
+            var gamma = dot(r.origin - center, r.origin - center);
+            var beta = dot(r.origin - center,r.direction);
+            var delta = (gamma + Ra2 - ra2)/2.0;
+            var k3 = beta;
+            var k2 = beta*beta - Ra2*dot(r.direction.xy,r.direction.xy) + delta;
+            var k1 = beta*delta - Ra2*dot(r.direction.xy,r.origin.xy - center.xy);
+            var k0 = delta*delta - Ra2*dot(r.origin.xy - center.xy,r.origin.xy - center.xy);
             if( abs(k3*(k3*k3-k2)+k1) < 0.01 )
             {
                 po = -1.0;
@@ -641,6 +641,164 @@
             return false;
         }
 
+        fn roundedBoxIntersect(r: Ray, center: vec3f, size: vec3f, radius: f32) -> f32
+        {
+            // bounding box
+            var rd = r.direction;
+            var ro = r.origin - center;
+            var m = 1.0/rd;
+            var n = m*ro;
+            var k = abs(m)*(size+radius);
+            var t1 = -n - k;
+            var t2 = -n + k;
+            var tN = max( max( t1.x, t1.y ), t1.z );
+            var tF = min( min( t2.x, t2.y ), t2.z );
+            if( tN>tF || tF<0.0) {return -1.0;}
+            var t = tN;
+
+            // convert to first octant
+            var pos = ro+t*rd;
+            var s = sign(pos);
+            ro  *= s;
+            rd  *= s;
+            pos *= s;
+
+            // faces
+            pos -= size;
+            pos = max( pos.xyz, pos.yzx );
+            if( min(min(pos.x,pos.y),pos.z) < 0.0 ) {return t;}
+
+            // some precomputation
+            var oc = ro - size;
+            var dd = rd*rd;
+            var oo = oc*oc;
+            var od = oc*rd;
+            var ra2 = radius*radius;
+
+            t = 1e20; 
+
+            // corner
+            {
+            var b = od.x + od.y + od.z;
+            var c = oo.x + oo.y + oo.z - ra2;
+            var h = b*b - c;
+            if( h>0.0 ) {t = -b-sqrt(h);}
+            }
+            // edge X
+            {
+            var a = dd.y + dd.z;
+            var b = od.y + od.z;
+            var c = oo.y + oo.z - ra2;
+            var h = b*b - a*c;
+            if( h>0.0 )
+            {
+                h = (-b-sqrt(h))/a;
+                if( h>0.0 && h<t && abs(ro.x+rd.x*h)<size.x ) {t = h;}
+            }
+            }
+            // edge Y
+            {
+            var a = dd.z + dd.x;
+            var b = od.z + od.x;
+            var c = oo.z + oo.x - ra2;
+            var h = b*b - a*c;
+            if( h>0.0 )
+            {
+                h = (-b-sqrt(h))/a;
+                if( h>0.0 && h<t && abs(ro.y+rd.y*h)<size.y ) {t = h;}
+            }
+            }
+            // edge Z
+            {
+            var a = dd.x + dd.y;
+            var b = od.x + od.y;
+            var c = oo.x + oo.y - ra2;
+            var h = b*b - a*c;
+            if( h>0.0 )
+            {
+                h = (-b-sqrt(h))/a;
+                if( h>0.0 && h<t && abs(ro.z+rd.z*h)<size.z ) {t = h;}
+            }
+            }
+
+            if( t>1e19 ) {t=-1.0;}
+            
+            return t;
+        }
+
+        fn roundedBoxNormal(pos: vec3f, size: vec3f, radius: f32)->vec3f
+        {
+            return sign(pos)*normalize(max(abs(pos) - size, vec3f(0.0)));
+        }
+
+        fn intersect_roundedBox(r: Ray, hit: ptr<function, HitInfo>, center: vec3f, size: vec3f, radius: f32) -> bool
+        {
+            var t = roundedBoxIntersect(r, center, size, radius);
+            if (t > r.t_min && t < r.t_max)
+            {
+                (*hit).has_hit = true;
+                (*hit).dist = t;
+                (*hit).position = r.origin + t * r.direction;
+                (*hit).normal = roundedBoxNormal((*hit).position, size, radius);
+                return true;
+            }
+            return false;
+        }
+
+        fn cylinderIntersect(r: Ray, center: vec3f, a: vec3f, b: vec3f, radius: f32) -> vec4f
+        {
+            var ro = r.origin - center;
+            var rd = r.direction;
+            var ba = b  - a;
+            var oc = ro - a;
+            var baba = dot(ba,ba);
+            var bard = dot(ba,rd);
+            var baoc = dot(ba,oc);
+            var k2 = baba - bard*bard;
+            var k1 = baba*dot(oc,rd) - baoc*bard;
+            var k0 = baba*dot(oc,oc) - baoc*baoc - radius*radius*baba;
+            var h = k1*k1 - k2*k0;
+            if( h<0.0 ) {return vec4(-1.0);}//no intersection
+            h = sqrt(h);
+            var t = (-k1-h)/k2;
+            // body
+            var y = baoc + t*bard;
+            if( y>0.0 && y<baba ) {return vec4f( t, (oc+t*rd - ba*y/baba)/radius );}
+            // caps
+            t = (select(baba, 0.0, y<0.0) - baoc)/bard;
+            if( abs(k1+k2*t)<h )
+            {
+                return vec4( t, ba*sign(y)/sqrt(baba) );
+            }
+            return vec4(-1.0);//no intersection
+        }   
+
+        fn cylinderNormal(pos: vec3f, a: vec3f, b: vec3f, radius: f32)->vec3f
+        {
+            var pa = pos - a;
+            var ba = b - a;
+            var baba = dot(ba,ba);
+            var paba = dot(pa,ba);
+            var h = dot(pa,ba)/baba;
+            return (pa - ba*h)/radius;
+        }
+
+        fn intersect_cylinder(r: Ray, hit: ptr<function, HitInfo>, center: vec3f, a: vec3f, b: vec3f,radius: f32) -> bool
+        {
+            var t = cylinderIntersect(r, center, a, b, radius);
+            if (t.x > r.t_min && t.x < r.t_max)
+            {
+                (*hit).has_hit = true;
+                (*hit).dist = t.x;
+                (*hit).position = t.xyz;
+                //(*hit).position = r.origin + t * r.direction;
+                (*hit).normal = t.yzw;
+                //(*hit).normal = cylinderNormal((*hit).position, a, b, radius);
+                return true;
+            }
+            return false;
+        }
+
         fn intersect_scene(r : ptr<function, Ray>, hit : ptr<function, HitInfo>) -> bool
         {
             var idx : Idx;
@@ -674,6 +832,36 @@
                     (*hit).normal = -(*hit).normal;
                 }
             }
+            //if(intersect_roundedBox((*r), hit, vec3f(130.0, 150.0, 250.0), vec3f(50.0, 50.0, 50.0), 25.0))
+            //{
+            //    (*r).t_max = (*hit).dist;
+            //    (*hit).color = vec3f(0.5, 0.5, 1.0);
+            //    (*hit).shader = 1;
+            //    if(dot((*hit).normal, (*r).direction) < 0)
+            //    {
+            //        (*hit).ior1_over_ior2 = 1/1.5;
+            //    }
+            //    else
+            //    {
+            //        (*hit).ior1_over_ior2 = 1.5;
+            //        (*hit).normal = -(*hit).normal;
+            //    }
+            //}
+            //if(intersect_cylinder((*r), hit, vec3f(50.0, 150.0, 250.0), vec3f(70.0, 70.0, 70.0), vec3f(70.0, -140.0, 70.0), 100.0))
+            //{
+            //    (*r).t_max = (*hit).dist;
+            //    (*hit).color = vec3f(0.5, 0.5, 0.7);
+            //    (*hit).shader = 2;
+            //    if(dot((*hit).normal, (*r).direction) < 0)
+            //    {
+            //        (*hit).ior1_over_ior2 = 1/1.5;
+            //    }
+            //    else
+            //    {
+            //        (*hit).ior1_over_ior2 = 1.5;
+            //        (*hit).normal = -(*hit).normal;
+            //    }
+            //}
             
             
             //if(intersect_sphere((*r), hit, vec3f(130.0, 90.0, 250.0), 90.0))
@@ -820,16 +1008,6 @@
 
             (*hit).emit = false;
             (*hit).rgbFactor *= ro;
-            //var avg_color = (*hit).color[0] + (*hit).color[1] + (*hit).color[2];
-            //if(avg_color < rnd(t))
-            //{
-            //    (*hit).has_hit = false;
-            
-            //}
-            //else
-            //{
-            //    (*hit).has_hit = true;
-            //}
             (*hit).has_hit = false; 
             (*hit).depth = (*hit).depth + 1;
             (*r).origin = (*hit).position;
